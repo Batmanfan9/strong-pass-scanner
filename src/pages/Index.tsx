@@ -8,6 +8,9 @@ import { EntropyChart } from '@/components/PasswordAnalyzer/EntropyChart';
 import { CharacterDistribution } from '@/components/PasswordAnalyzer/CharacterDistribution';
 import { FeedbackList } from '@/components/PasswordAnalyzer/FeedbackList';
 import { BreachChecker } from '@/components/PasswordAnalyzer/BreachChecker';
+import { HashStrengthTester } from '@/components/PasswordAnalyzer/HashStrengthTester';
+import { EntropyGrowthChart } from '@/components/PasswordAnalyzer/EntropyGrowthChart';
+import { NgramAnalysis } from '@/components/PasswordAnalyzer/NgramAnalysis';
 
 const Index = () => {
   const [password, setPassword] = useState('');
@@ -92,13 +95,28 @@ const Index = () => {
             <CharacterDistribution analysis={analysis} />
           </div>
 
-          {/* Feedback */}
+          {/* Entropy Growth Chart */}
           <div className="lg:col-span-2">
+            <EntropyGrowthChart analysis={analysis} />
+          </div>
+
+          {/* N-gram Analysis */}
+          <div>
+            <NgramAnalysis analysis={analysis} />
+          </div>
+
+          {/* Hash Strength Tester */}
+          <div className="lg:col-span-2">
+            <HashStrengthTester analysis={analysis} />
+          </div>
+
+          {/* Feedback */}
+          <div>
             <FeedbackList analysis={analysis} />
           </div>
 
           {/* Breach Checker */}
-          <div>
+          <div className="lg:col-span-2">
             <BreachChecker password={password} />
           </div>
         </div>
@@ -151,6 +169,15 @@ const Index = () => {
             </div>
             <div>
               <strong className="text-foreground">Breach Detection:</strong> Checks against 600M+ leaked passwords
+            </div>
+            <div>
+              <strong className="text-foreground">N-gram Analysis:</strong> Compares against leaked password patterns
+            </div>
+            <div>
+              <strong className="text-foreground">Hash Strength:</strong> Simulates brute-force resistance
+            </div>
+            <div>
+              <strong className="text-foreground">Entropy Growth:</strong> Visualizes unpredictability per character
             </div>
             <div>
               <strong className="text-foreground">Privacy First:</strong> All analysis happens locally in your browser

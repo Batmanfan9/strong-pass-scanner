@@ -21,6 +21,13 @@ export interface PasswordAnalysis {
   };
   feedback: string[];
   crackTime: string;
+  ngramLikelihood: number; // 0-100, lower is better
+  hashStrength: {
+    bcrypt: { time: string; guessesPerSecond: string };
+    sha256: { time: string; guessesPerSecond: string };
+    argon2: { time: string; guessesPerSecond: string };
+  };
+  entropyPerCharacter: { character: number; entropy: number }[];
 }
 
 // Calculate Shannon entropy
@@ -105,6 +112,97 @@ export function detectDictionaryWords(password: string): boolean {
   return commonWords.some(word => lower.includes(word));
 }
 
+// N-gram frequency analysis based on leaked password datasets
+export function calculateNgramLikelihood(password: string): number {
+  // Common 2-grams and 3-grams from real-world leaked passwords
+  const common2grams = ['12', '23', '34', '45', '56', '67', '78', '89', '90', 'ab', 'bc', 'cd', 'de', 'er', 'es', 'st', 'th', 'an', 'in', 'on'];
+  const common3grams = ['123', '234', '345', '456', '567', '678', '789', '890', 'abc', 'bcd', 'cde', 'def', 'the', 'and', 'ing', 'ion', 'ass', 'ord'];
+  
+  const lower = password.toLowerCase();
+  let matchCount = 0;
+  let totalNgrams = 0;
+  
+  // Check 2-grams
+  for (let i = 0; i < lower.length - 1; i++) {
+    totalNgrams++;
+    const bigram = lower.substring(i, i + 2);
+    if (common2grams.includes(bigram)) matchCount++;
+  }
+  
+  // Check 3-grams with higher weight
+  for (let i = 0; i < lower.length - 2; i++) {
+    totalNgrams++;
+    const trigram = lower.substring(i, i + 3);
+    if (common3grams.includes(trigram)) matchCount += 1.5;
+  }
+  
+  if (totalNgrams === 0) return 0;
+  
+  // Return percentage (0-100), higher means more predictable
+  return Math.min(100, (matchCount / totalNgrams) * 100);
+}
+
+// Calculate entropy growth per character
+export function calculateEntropyPerCharacter(password: string): { character: number; entropy: number }[] {
+  const result: { character: number; entropy: number }[] = [];
+  
+  for (let i = 1; i <= password.length; i++) {
+    const substring = password.substring(0, i);
+    const entropy = calculateEntropy(substring);
+    result.push({ character: i, entropy });
+  }
+  
+  return result;
+}
+
+// Simulate hash strength and brute-force time
+export function calculateHashStrength(password: string, entropy: number) {
+  // Calculate possible combinations based on character types
+  let charsetSize = 0;
+  if (/[a-z]/.test(password)) charsetSize += 26;
+  if (/[A-Z]/.test(password)) charsetSize += 26;
+  if (/[0-9]/.test(password)) charsetSize += 10;
+  if (/[^A-Za-z0-9]/.test(password)) charsetSize += 32;
+  
+  const combinations = Math.pow(charsetSize, password.length);
+  
+  // Guesses per second for different hashing algorithms
+  const bcryptSpeed = 1000; // ~1,000 hashes/sec (very slow, secure)
+  const sha256Speed = 1000000000; // ~1 billion hashes/sec (fast, less secure)
+  const argon2Speed = 500; // ~500 hashes/sec (very slow, most secure)
+  
+  const formatTime = (seconds: number): string => {
+    if (seconds < 60) return `${Math.round(seconds)} seconds`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)} minutes`;
+    if (seconds < 86400) return `${Math.round(seconds / 3600)} hours`;
+    if (seconds < 31536000) return `${Math.round(seconds / 86400)} days`;
+    if (seconds < 3153600000) return `${Math.round(seconds / 31536000)} years`;
+    return `${(seconds / 31536000).toExponential(2)} years`;
+  };
+  
+  const formatGuesses = (speed: number): string => {
+    if (speed >= 1000000000) return `${(speed / 1000000000).toFixed(1)}B/sec`;
+    if (speed >= 1000000) return `${(speed / 1000000).toFixed(1)}M/sec`;
+    if (speed >= 1000) return `${(speed / 1000).toFixed(1)}K/sec`;
+    return `${speed}/sec`;
+  };
+  
+  return {
+    bcrypt: {
+      time: formatTime(combinations / (bcryptSpeed * 2)),
+      guessesPerSecond: formatGuesses(bcryptSpeed),
+    },
+    sha256: {
+      time: formatTime(combinations / (sha256Speed * 2)),
+      guessesPerSecond: formatGuesses(sha256Speed),
+    },
+    argon2: {
+      time: formatTime(combinations / (argon2Speed * 2)),
+      guessesPerSecond: formatGuesses(argon2Speed),
+    },
+  };
+}
+
 // Calculate character distribution
 export function getCharDistribution(password: string) {
   const distribution = {
@@ -185,6 +283,13 @@ export function analyzePassword(password: string): PasswordAnalysis {
       charDistribution: { uppercase: 0, lowercase: 0, numbers: 0, symbols: 0 },
       feedback: ['Enter a password to begin analysis'],
       crackTime: 'N/A',
+      ngramLikelihood: 0,
+      hashStrength: {
+        bcrypt: { time: 'N/A', guessesPerSecond: 'N/A' },
+        sha256: { time: 'N/A', guessesPerSecond: 'N/A' },
+        argon2: { time: 'N/A', guessesPerSecond: 'N/A' },
+      },
+      entropyPerCharacter: [],
     };
   }
   
@@ -201,14 +306,25 @@ export function analyzePassword(password: string): PasswordAnalysis {
   const hasKeyboardPatternDetected = detectKeyboardPattern(password);
   const hasDictionaryWordsDetected = detectDictionaryWords(password);
   
-  // Calculate adjusted score (0-4)
+  // Calculate n-gram likelihood and entropy per character
+  const ngramLikelihood = calculateNgramLikelihood(password);
+  const entropyPerCharacter = calculateEntropyPerCharacter(password);
+  const hashStrength = calculateHashStrength(password, entropy);
+  
+  // Adaptive scoring system with weighted penalties
   let score: number = zxcvbnResult.score;
   
-  // Penalties
-  if (hasRepeatedChars) score = Math.max(0, score - 1);
-  if (hasSequentialChars) score = Math.max(0, score - 1);
-  if (hasKeyboardPatternDetected) score = Math.max(0, score - 1);
-  if (hasDictionaryWordsDetected) score = Math.max(0, score - 1);
+  // Heavy penalties (most critical security issues)
+  if (hasDictionaryWordsDetected) score = Math.max(0, score - 1.5);
+  if (hasKeyboardPatternDetected) score = Math.max(0, score - 1.2);
+  if (ngramLikelihood > 50) score = Math.max(0, score - 1);
+  
+  // Medium penalties
+  if (hasSequentialChars) score = Math.max(0, score - 0.8);
+  if (hasRepeatedChars) score = Math.max(0, score - 0.7);
+  
+  // Light penalties
+  if (password.length < 8) score = Math.max(0, score - 0.5);
   
   // Bonuses
   if (password.length >= 16) score = Math.min(4, score + 1);
@@ -216,6 +332,7 @@ export function analyzePassword(password: string): PasswordAnalysis {
   if (hasUppercase && hasLowercase && hasNumbers && hasSymbols) {
     score = Math.min(4, score + 1);
   }
+  if (ngramLikelihood < 20) score = Math.min(4, score + 0.5);
   
   // Map score to strength label
   const strengthMap: { [key: number]: PasswordAnalysis['strength'] } = {
@@ -242,6 +359,9 @@ export function analyzePassword(password: string): PasswordAnalysis {
     charDistribution,
     feedback: [],
     crackTime: String(zxcvbnResult.crack_times_display.offline_slow_hashing_1e4_per_second),
+    ngramLikelihood,
+    hashStrength,
+    entropyPerCharacter,
   };
   
   analysis.feedback = generateFeedback(analysis);
