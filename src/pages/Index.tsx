@@ -11,6 +11,7 @@ import { BreachChecker } from '@/components/PasswordAnalyzer/BreachChecker';
 import { HashStrengthTester } from '@/components/PasswordAnalyzer/HashStrengthTester';
 import { EntropyGrowthChart } from '@/components/PasswordAnalyzer/EntropyGrowthChart';
 import { NgramAnalysis } from '@/components/PasswordAnalyzer/NgramAnalysis';
+import { PasswordGenerator } from '@/components/PasswordAnalyzer/PasswordGenerator';
 
 const Index = () => {
   const [password, setPassword] = useState('');
@@ -81,6 +82,11 @@ const Index = () => {
 
           {/* Strength Meter */}
           {password && <StrengthMeter analysis={analysis} />}
+        </div>
+
+        {/* Password Generator */}
+        <div className="mb-8">
+          <PasswordGenerator onPasswordGenerated={setPassword} />
         </div>
 
         {/* Analytics Grid */}
