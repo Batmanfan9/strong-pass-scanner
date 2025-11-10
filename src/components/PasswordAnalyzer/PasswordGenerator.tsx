@@ -65,49 +65,27 @@ export function PasswordGenerator({ onPasswordGenerated }: PasswordGeneratorProp
   const getSuggestedApplications = (analysis: PasswordAnalysis) => {
     if (analysis.score >= 4) {
       return {
-        title: "Extremely Strong - Critical Applications",
-        apps: [
-          "Banking & Financial Services",
-          "Corporate Email & Work Systems",
-          "Password Managers Master Password",
-          "Cryptocurrency Wallets",
-          "Medical Records & Healthcare Systems"
-        ],
-        color: "text-success"
+        title: "Very Strong - Critical Applications",
+        apps: ["Banking", "Email", "Password Managers", "Crypto Wallets"],
+        color: "text-strength-very-strong"
       };
     } else if (analysis.score >= 3) {
       return {
         title: "Strong - Sensitive Applications",
-        apps: [
-          "Personal Email Accounts",
-          "Social Media Accounts",
-          "E-commerce & Shopping Sites",
-          "Cloud Storage Services",
-          "Government Portals"
-        ],
-        color: "text-primary"
+        apps: ["Social Media", "E-commerce", "Cloud Storage"],
+        color: "text-strength-strong"
       };
     } else if (analysis.score >= 2) {
       return {
-        title: "Moderate - General Use",
-        apps: [
-          "Forum Accounts",
-          "Gaming Platforms",
-          "Newsletter Subscriptions",
-          "Basic Web Services",
-          "Mobile Apps (non-sensitive)"
-        ],
-        color: "text-warning"
+        title: "Fair - General Use",
+        apps: ["Forums", "Gaming", "Newsletters"],
+        color: "text-strength-fair"
       };
     } else {
       return {
         title: "Weak - Not Recommended",
-        apps: [
-          "Test Accounts Only",
-          "Temporary Access",
-          "Local Development Environment"
-        ],
-        color: "text-destructive"
+        apps: ["Test Accounts Only"],
+        color: "text-strength-weak"
       };
     }
   };

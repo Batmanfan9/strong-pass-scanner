@@ -4,13 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { analyzePassword, PasswordAnalysis } from '@/utils/passwordAnalysis';
 import { StrengthMeter } from '@/components/PasswordAnalyzer/StrengthMeter';
-import { EntropyChart } from '@/components/PasswordAnalyzer/EntropyChart';
 import { CharacterDistribution } from '@/components/PasswordAnalyzer/CharacterDistribution';
 import { FeedbackList } from '@/components/PasswordAnalyzer/FeedbackList';
-import { BreachChecker } from '@/components/PasswordAnalyzer/BreachChecker';
-import { HashStrengthTester } from '@/components/PasswordAnalyzer/HashStrengthTester';
-import { EntropyGrowthChart } from '@/components/PasswordAnalyzer/EntropyGrowthChart';
-import { NgramAnalysis } from '@/components/PasswordAnalyzer/NgramAnalysis';
 import { PasswordGenerator } from '@/components/PasswordAnalyzer/PasswordGenerator';
 
 const Index = () => {
@@ -90,41 +85,9 @@ const Index = () => {
         </div>
 
         {/* Analytics Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Entropy Chart */}
-          <div className="lg:col-span-2">
-            <EntropyChart analysis={analysis} />
-          </div>
-
-          {/* Character Distribution */}
-          <div>
-            <CharacterDistribution analysis={analysis} />
-          </div>
-
-          {/* Entropy Growth Chart */}
-          <div className="lg:col-span-2">
-            <EntropyGrowthChart analysis={analysis} />
-          </div>
-
-          {/* N-gram Analysis */}
-          <div>
-            <NgramAnalysis analysis={analysis} />
-          </div>
-
-          {/* Hash Strength Tester */}
-          <div className="lg:col-span-2">
-            <HashStrengthTester analysis={analysis} />
-          </div>
-
-          {/* Feedback */}
-          <div>
-            <FeedbackList analysis={analysis} />
-          </div>
-
-          {/* Breach Checker */}
-          <div className="lg:col-span-2">
-            <BreachChecker password={password} />
-          </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <CharacterDistribution analysis={analysis} />
+          <FeedbackList analysis={analysis} />
         </div>
 
         {/* Additional Stats */}
@@ -158,37 +121,10 @@ const Index = () => {
         )}
 
         {/* Footer Info */}
-        <div className="mt-8 p-6 rounded-lg bg-muted/50 border border-border">
-          <h3 className="font-semibold text-foreground mb-2">How It Works</h3>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm text-muted-foreground">
-            <div>
-              <strong className="text-foreground">Real-time Analysis:</strong> Updates within 100ms as you type
-            </div>
-            <div>
-              <strong className="text-foreground">Pattern Detection:</strong> Identifies keyboard patterns & sequences
-            </div>
-            <div>
-              <strong className="text-foreground">Entropy Calculation:</strong> Measures randomness using Shannon entropy
-            </div>
-            <div>
-              <strong className="text-foreground">Dictionary Check:</strong> Detects common words and phrases
-            </div>
-            <div>
-              <strong className="text-foreground">Breach Detection:</strong> Checks against 600M+ leaked passwords
-            </div>
-            <div>
-              <strong className="text-foreground">N-gram Analysis:</strong> Compares against leaked password patterns
-            </div>
-            <div>
-              <strong className="text-foreground">Hash Strength:</strong> Simulates brute-force resistance
-            </div>
-            <div>
-              <strong className="text-foreground">Entropy Growth:</strong> Visualizes unpredictability per character
-            </div>
-            <div>
-              <strong className="text-foreground">Privacy First:</strong> All analysis happens locally in your browser
-            </div>
-          </div>
+        <div className="mt-8 p-6 rounded-lg bg-muted/50 border border-border text-center">
+          <p className="text-sm text-muted-foreground">
+            All analysis happens locally in your browser. No passwords are stored or transmitted.
+          </p>
         </div>
       </main>
     </div>
