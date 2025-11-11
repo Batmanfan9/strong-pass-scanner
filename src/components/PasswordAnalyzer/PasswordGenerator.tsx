@@ -1,7 +1,3 @@
-// === PASSWORD GENERATOR COMPONENT ===
-// This creates random, secure passwords for you!
-// You can customize the length and what characters to include
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,72 +13,41 @@ interface PasswordGeneratorProps {
 }
 
 export function PasswordGenerator({ onPasswordGenerated }: PasswordGeneratorProps) {
-  // State variables (these remember your settings)
-  const [length, setLength] = useState([16]);  // How long should the password be?
-  const [includeUppercase, setIncludeUppercase] = useState(true);  // Include A-Z?
-  const [includeLowercase, setIncludeLowercase] = useState(true);  // Include a-z?
-  const [includeNumbers, setIncludeNumbers] = useState(true);      // Include 0-9?
-  const [includeSymbols, setIncludeSymbols] = useState(true);      // Include !@#$?
-  const [generatedPassword, setGeneratedPassword] = useState('');  // The generated password
-  const [analysis, setAnalysis] = useState<PasswordAnalysis | null>(null);  // Password strength info
-  const { toast } = useToast();  // For showing popup messages
+  const [length, setLength] = useState([16]);
+  const [includeUppercase, setIncludeUppercase] = useState(true);
+  const [includeLowercase, setIncludeLowercase] = useState(true);
+  const [includeNumbers, setIncludeNumbers] = useState(true);
+  const [includeSymbols, setIncludeSymbols] = useState(true);
+  const [generatedPassword, setGeneratedPassword] = useState('');
+  const [analysis, setAnalysis] = useState<PasswordAnalysis | null>(null);
+  const { toast } = useToast();
 
-  // This function generates a random password based on your settings
   const generatePassword = () => {
-    // Define all possible character types
-    const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
-    const numberChars = '0123456789';
-    const symbolChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    let chars = '';
+    if (includeUppercase) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (includeLowercase) chars += 'abcdefghijklmnopqrstuvwxyz';
+    if (includeNumbers) chars += '0123456789';
+    if (includeSymbols) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
 
-    // Build the "character pool" - all characters we can use
-    let characterPool = '';
-    if (includeUppercase) characterPool += uppercaseChars;
-    if (includeLowercase) characterPool += lowercaseChars;
-    if (includeNumbers) characterPool += numberChars;
-    if (includeSymbols) characterPool += symbolChars;
-
-    // Make sure at least one type is selected!
-    if (characterPool === '') {
-      toast({
-        title: "Error",
-        description: "Please select at least one character type",
-        variant: "destructive",
-      });
+    if (!chars) {
+      toast({ title: "Error", description: "Select at least one character type", variant: "destructive" });
       return;
     }
 
-    // Generate the password using SECURE randomness
-    // (Not just Math.random() - that's not secure enough!)
-    const randomNumbers = new Uint32Array(length[0]);
-    window.crypto.getRandomValues(randomNumbers);  // Get truly random numbers
-    
-    // Convert each random number to a character from our pool
-    const password = Array.from(randomNumbers, (randomNum) => {
-      // Use modulo (%) to pick a character from our pool
-      const index = randomNum % characterPool.length;
-      return characterPool[index];
-    }).join('');
+    const array = new Uint32Array(length[0]);
+    window.crypto.getRandomValues(array);
+    const password = Array.from(array, x => chars[x % chars.length]).join('');
 
-    // Save the generated password and analyze its strength
     setGeneratedPassword(password);
-    const passwordAnalysis = analyzePassword(password);
-    setAnalysis(passwordAnalysis);
-    
-    // Tell the parent component about the new password
+    setAnalysis(analyzePassword(password));
     onPasswordGenerated(password);
   };
 
-  // Copy password to clipboard (so you can paste it elsewhere)
   const copyToClipboard = () => {
     navigator.clipboard.writeText(generatedPassword);
-    toast({
-      title: "Copied!",
-      description: "Password copied to clipboard",
-    });
+    toast({ title: "Copied!", description: "Password copied to clipboard" });
   };
 
-  // Suggest what websites/apps this password is good for based on its strength
   const getSuggestedApplications = (analysis: PasswordAnalysis) => {
     if (analysis.score >= 4) {
       return {
