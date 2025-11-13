@@ -27,16 +27,18 @@ export function PasswordGenerator({ onPasswordGenerated }: PasswordGeneratorProp
     if (includeUppercase) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     if (includeLowercase) chars += 'abcdefghijklmnopqrstuvwxyz';
     if (includeNumbers) chars += '0123456789';
-    if (includeSymbols) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    if (includeSymbols) chars += '!@#$%^&*';
 
-    if (!chars) {
-      toast({ title: "Error", description: "Select at least one character type", variant: "destructive" });
+    if (chars === '') {
+      toast({ title: "Error", description: "Pick at least one type", variant: "destructive" });
       return;
     }
 
-    const array = new Uint32Array(length[0]);
-    window.crypto.getRandomValues(array);
-    const password = Array.from(array, x => chars[x % chars.length]).join('');
+    let password = '';
+    for (let i = 0; i < length[0]; i++) {
+      const randomIndex = Math.floor(Math.random() * chars.length);
+      password += chars[randomIndex];
+    }
 
     setGeneratedPassword(password);
     setAnalysis(analyzePassword(password));

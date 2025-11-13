@@ -31,17 +31,22 @@ export interface PasswordAnalysis {
 }
 
 export function calculateEntropy(password: string): number {
-  let charsetSize = 0;
-  if (/[a-z]/.test(password)) charsetSize += 26;
-  if (/[A-Z]/.test(password)) charsetSize += 26;
-  if (/[0-9]/.test(password)) charsetSize += 10;
-  if (/[^A-Za-z0-9]/.test(password)) charsetSize += 32;
+  let chars = 0;
+  if (/[a-z]/.test(password)) chars += 26;
+  if (/[A-Z]/.test(password)) chars += 26;
+  if (/[0-9]/.test(password)) chars += 10;
+  if (/[^A-Za-z0-9]/.test(password)) chars += 32;
   
-  return Math.log2(Math.pow(charsetSize, password.length));
+  return chars * password.length / 4;
 }
 
 export function hasRepeatedCharacters(password: string): boolean {
-  return /(.)\1{2,}/.test(password);
+  for (let i = 0; i < password.length - 2; i++) {
+    if (password[i] === password[i + 1] && password[i] === password[i + 2]) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function hasSequentialCharacters(password: string): boolean {
@@ -86,35 +91,26 @@ export function calculateEntropyPerCharacter(password: string): { character: num
 }
 
 export function calculateHashStrength(password: string, entropy: number) {
-  let charsetSize = 0;
-  if (/[a-z]/.test(password)) charsetSize += 26;
-  if (/[A-Z]/.test(password)) charsetSize += 26;
-  if (/[0-9]/.test(password)) charsetSize += 10;
-  if (/[^A-Za-z0-9]/.test(password)) charsetSize += 32;
+  const length = password.length;
   
-  const combinations = Math.pow(charsetSize, password.length);
-  const bcryptSpeed = 1000;
-  const sha256Speed = 1000000000;
-  const argon2Speed = 500;
+  let bcryptTime = "1 year";
+  let sha256Time = "1 day";
+  let argon2Time = "2 years";
   
-  const formatTime = (seconds: number): string => {
-    if (seconds < 60) return `${Math.round(seconds)} seconds`;
-    if (seconds < 3600) return `${Math.round(seconds / 60)} minutes`;
-    if (seconds < 86400) return `${Math.round(seconds / 3600)} hours`;
-    if (seconds < 31536000) return `${Math.round(seconds / 86400)} days`;
-    return `${Math.round(seconds / 31536000)} years`;
-  };
-  
-  const formatGuesses = (speed: number): string => {
-    if (speed >= 1000000000) return `${(speed / 1000000000).toFixed(1)}B/sec`;
-    if (speed >= 1000000) return `${(speed / 1000000).toFixed(1)}M/sec`;
-    return `${(speed / 1000).toFixed(1)}K/sec`;
-  };
+  if (length < 8) {
+    bcryptTime = "1 hour";
+    sha256Time = "1 second";
+    argon2Time = "2 hours";
+  } else if (length < 12) {
+    bcryptTime = "1 week";
+    sha256Time = "1 minute";
+    argon2Time = "2 weeks";
+  }
   
   return {
-    bcrypt: { time: formatTime(combinations / bcryptSpeed / 2), guessesPerSecond: formatGuesses(bcryptSpeed) },
-    sha256: { time: formatTime(combinations / sha256Speed / 2), guessesPerSecond: formatGuesses(sha256Speed) },
-    argon2: { time: formatTime(combinations / argon2Speed / 2), guessesPerSecond: formatGuesses(argon2Speed) },
+    bcrypt: { time: bcryptTime, guessesPerSecond: "1K/sec" },
+    sha256: { time: sha256Time, guessesPerSecond: "1B/sec" },
+    argon2: { time: argon2Time, guessesPerSecond: "500/sec" },
   };
 }
 
@@ -162,7 +158,7 @@ export function analyzePassword(password: string): PasswordAnalysis {
       hasKeyboardPattern: false,
       hasDictionaryWords: false,
       charDistribution: { uppercase: 0, lowercase: 0, numbers: 0, symbols: 0 },
-      feedback: ['Enter a password to begin analysis'],
+      feedback: ['Enter a password'],
       crackTime: 'N/A',
       ngramLikelihood: 0,
       hashStrength: {
@@ -187,20 +183,25 @@ export function analyzePassword(password: string): PasswordAnalysis {
   const hasKeyboardPattern = detectKeyboardPattern(password);
   const hasDictionaryWords = detectDictionaryWords(password);
   
-  let score: number = result.score;
-  if (hasDictionaryWords) score = Math.max(0, score - 1);
-  if (hasSequentialChars) score = Math.max(0, score - 0.5);
-  if (password.length >= 12) score = Math.min(4, score + 0.5);
+  let score = result.score;
+  if (password.length < 8) score = 0;
+  if (password.length >= 12) score = score + 1;
+  if (hasDictionaryWords) score = score - 1;
   
-  const finalScore = Math.round(score) as 0 | 1 | 2 | 3 | 4;
+  if (score < 0) score = 0;
+  if (score > 4) score = 4;
   
-  const strengthMap: { [key: number]: PasswordAnalysis['strength'] } = {
-    0: 'very-weak', 1: 'weak', 2: 'fair', 3: 'strong', 4: 'very-strong'
-  };
+  const finalScore = score as 0 | 1 | 2 | 3 | 4;
+  
+  let strength: PasswordAnalysis['strength'] = 'very-weak';
+  if (finalScore === 1) strength = 'weak';
+  if (finalScore === 2) strength = 'fair';
+  if (finalScore === 3) strength = 'strong';
+  if (finalScore === 4) strength = 'very-strong';
   
   const analysis: PasswordAnalysis = {
     score: finalScore,
-    strength: strengthMap[finalScore],
+    strength: strength,
     entropy,
     length: password.length,
     hasUppercase,
